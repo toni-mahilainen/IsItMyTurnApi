@@ -23,7 +23,7 @@ namespace IsItMyTurnApi.Controllers
             try
             {
                 var apartments = (from a in context.Apartments
-                                  select new 
+                                  select new
                                   {
                                       a.ApartmentId,
                                       a.Apartment
@@ -34,6 +34,50 @@ namespace IsItMyTurnApi.Controllers
             catch (Exception ex)
             {
                 return BadRequest("Problem detected while getting apartments. Error message: " + ex.Message);
+            }
+            finally
+            {
+                context.Dispose();
+            }
+        }
+
+        // GET: api/apartment/currentshift
+        // Get an apartment number for current shift
+        [HttpGet]
+        [Route("currentshift")]
+        public ActionResult GetApartmentForCurrentShift()
+        {
+            IsItMyTurnContext context = new IsItMyTurnContext();
+
+            try
+            {
+                // Id of the apartment which made the last shift
+                int lastApartmentId = (from cf in context.CompletedShifts
+                                     orderby cf.ShiftId descending
+                                     select cf.ApartmentId).FirstOrDefault();
+
+                int currentApartmentId;
+
+                // If the apartment ID is 5, next in shift will be an apartment 1
+                if (lastApartmentId < 5)
+                {
+                    currentApartmentId = lastApartmentId + 1;
+                }
+                else
+                {
+                    currentApartmentId = 1;
+                }
+
+                // Get the apartment number based on currentApartmentId
+                string currentApartment = (from a in context.Apartments
+                                           where a.ApartmentId == currentApartmentId
+                                           select a.Apartment).FirstOrDefault();
+
+                return Ok(currentApartment);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Problem detected while getting an apartment for current shift. Error message: " + ex.Message);
             }
             finally
             {
