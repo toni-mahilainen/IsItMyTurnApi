@@ -11,7 +11,7 @@ namespace IsItMyTurnApi.Models
         }
 
         public int ApartmentId { get; set; }
-        public string Apartment { get; set; }
+        public string ApartmentName { get; set; }
 
         public virtual ICollection<CompletedShifts> CompletedShifts { get; set; }
     }

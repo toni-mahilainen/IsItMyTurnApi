@@ -26,7 +26,7 @@ namespace IsItMyTurnApi.Controllers
                               select new
                               {
                                   cf.ShiftId,
-                                  cf.Apartment.Apartment,
+                                  cf.Apartment.ApartmentName,
                                   cf.Date.Date
                               }).ToList();
 

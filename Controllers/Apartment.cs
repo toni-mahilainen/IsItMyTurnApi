@@ -26,7 +26,7 @@ namespace IsItMyTurnApi.Controllers
                                   select new
                                   {
                                       a.ApartmentId,
-                                      a.Apartment
+                                      a.ApartmentName
                                   }).ToList();
 
                 return Ok(apartments);
@@ -71,7 +71,7 @@ namespace IsItMyTurnApi.Controllers
                 // Get the apartment number based on currentApartmentId
                 string currentApartment = (from a in context.Apartments
                                            where a.ApartmentId == currentApartmentId
-                                           select a.Apartment).FirstOrDefault();
+                                           select a.ApartmentName).FirstOrDefault();
 
                 return Ok(currentApartment);
             }

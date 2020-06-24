@@ -22,7 +22,7 @@ namespace IsItMyTurnApi.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=ASUS-LAPTOP\\SQLDEVTONIMA;Initial Catalog=IsItMyTurn;Persist Security Info=False;User ID=sa;Password=866462Tm;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
+                optionsBuilder.UseSqlServer("Server=tcp:careeria-sql.database.windows.net,1433;Initial Catalog=IsItMyTurn;Persist Security Info=False;User ID=SQLAdmin;Password=866462Tm;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
             }
         }
 
@@ -32,7 +32,7 @@ namespace IsItMyTurnApi.Models
             {
                 entity.HasKey(e => e.ApartmentId);
 
-                entity.Property(e => e.Apartment)
+                entity.Property(e => e.ApartmentName)
                     .IsRequired()
                     .HasMaxLength(5);
             });
