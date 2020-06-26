@@ -26,8 +26,9 @@ namespace IsItMyTurnApi.Controllers
                               select new
                               {
                                   cf.ShiftId,
+                                  cf.ApartmentId,
                                   cf.Apartment.ApartmentName,
-                                  cf.Date.Date
+                                  cf.Date
                               }).ToList();
 
                 return Ok(shifts);
@@ -64,6 +65,52 @@ namespace IsItMyTurnApi.Controllers
             finally
             {
                 context.Dispose();
+            }
+        }
+
+        // PUT: api/completedshift/
+        // Update data for completed shift
+        [HttpPut]
+        [Route("{id}")]
+        public ActionResult UpdateShiftData(int id, [FromBody] CompletedShifts newShiftData)
+        {
+            IsItMyTurnContext context = new IsItMyTurnContext();
+
+            if (id != 0)
+            {
+                CompletedShifts shift = (from cf in context.CompletedShifts
+                                         where cf.ShiftId == id
+                                         select cf).FirstOrDefault();
+
+                try
+                {
+                    if (shift != null)
+                    {
+                        shift.ApartmentId = newShiftData.ApartmentId;
+                        shift.Date = newShiftData.Date;
+
+                        context.SaveChanges();
+
+                        return Ok("Shift data has updated successfully!");
+                    }
+                    else
+                    {
+                        return NotFound("Shift with ID: " + id + " not found");
+                    }
+                    
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Problem detected while adding a new shift. Error message: " + ex.Message);
+                }
+                finally
+                {
+                    context.Dispose();
+                }
+            }
+            else
+            {
+                return BadRequest("Problems");
             }
         }
 
