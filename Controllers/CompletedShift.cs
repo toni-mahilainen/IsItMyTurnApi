@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using IsItMyTurnApi.Models;
+using IsItMyTurnApi.OtherModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace IsItMyTurnApi.Controllers
 {
@@ -47,20 +50,53 @@ namespace IsItMyTurnApi.Controllers
         // Add a new completed shift
         [HttpPost]
         [Route("")]
-        public ActionResult AddNewShift([FromBody] CompletedShifts newShift)
+        public ActionResult AddNewShift([FromBody] NewShift newShiftdata)
         {
             IsItMyTurnContext context = new IsItMyTurnContext();
 
             try
             {
-                context.CompletedShifts.Add(newShift);
-                context.SaveChanges();
+                if (newShiftdata != null)
+                {
+                    // Object for database
+                    CompletedShifts shift = new CompletedShifts()
+                    {
+                        ApartmentId = newShiftdata.ApartmentId,
+                        Date = newShiftdata.Date
+                    };
 
-                return Ok("New shift has added successfully!");
+                    context.CompletedShifts.Add(shift);
+
+                    // If the addition to the database succeeded
+                    if (context.SaveChanges() > 0)
+                    {
+                        bool notificationSuccess = HandleNotification(newShiftdata.FcmToken);
+
+                        // If the notification was sent successfully
+                        if (notificationSuccess)
+                        {
+                            return Ok("New shift has added successfully!");
+                        }
+                        else
+                        {
+                            return BadRequest("Problems with notification!");
+                        }
+                    }
+                    else
+                    {
+                        return BadRequest("Problems with adding content to database!");
+                    }
+
+                   
+                }
+                else
+                {
+                    return NotFound("New shift data missing!");
+                }
             }
             catch (Exception ex)
             {
-                return BadRequest("Problem detected while adding a new shift. Error message: " + ex.Message);
+                return BadRequest("Problem detected while adding a new shift. Error message: " + ex.InnerException);
             }
             finally
             {
@@ -88,8 +124,6 @@ namespace IsItMyTurnApi.Controllers
                     {
                         shift.ApartmentId = newShiftData.ApartmentId;
                         shift.Date = newShiftData.Date;
-
-                        context.SaveChanges();
 
                         return Ok("Shift data has updated successfully!");
                     }
@@ -138,6 +172,111 @@ namespace IsItMyTurnApi.Controllers
             catch (Exception ex)
             {
                 return BadRequest("Problem detected while deleting a shift. Error message: " + ex.InnerException);
+            }
+            finally
+            {
+                context.Dispose();
+            }
+        }
+
+        // Build notification
+        public bool HandleNotification(string FcmToken)
+        {
+            string nextApartmentInShift = GetApartmentForNextShift();
+            
+            FCMNotification notification = new FCMNotification();
+            notification.title = "Leikkuuvuoro vaihtui!";
+            notification.body = "Seuraavana vuorossa asunto(t) " + nextApartmentInShift + ".";
+            
+            FCMData data = new FCMData();
+            data.key1 = "";
+            data.key2 = "";
+            data.key3 = "";
+            data.key4 = "";
+            
+            FCMBody body = new FCMBody();
+            body.registration_ids = new string[] { FcmToken };
+            body.notification = notification;
+            body.data = data;
+
+            var isSuccessCall = SendNotification(body).Result;
+            if (isSuccessCall)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        // Notification request to Firebase
+        public async Task<bool> SendNotification(FCMBody fcmBody)
+        {
+            try
+            {
+                var httpContent = JsonConvert.SerializeObject(fcmBody);
+                var client = new HttpClient();
+                var authorization = string.Format("key={0}", "AAAA_V-6Iio:APA91bF5-SIIcue9XdaALtO1is8Vlkk2PUVn9Z21LaeYurCI0y0s-1ZNtDA6ZxsMPpzTqM1Lh0uEf1SH-PBMIhOODp6sOY7v7PUOLBqyt-H3PcvbC4-mPmcaUH2Xk52ermtqvNua7vIH");
+                client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorization);
+                var stringContent = new StringContent(httpContent);
+                stringContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                string uri = "https://fcm.googleapis.com/fcm/send";
+                var response = await client.PostAsync(uri, stringContent).ConfigureAwait(false);
+                var result = response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (TaskCanceledException ex)
+            {
+                return false;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
+        // Apartment number for notification
+        public string GetApartmentForNextShift()
+        {
+            IsItMyTurnContext context = new IsItMyTurnContext();
+
+            try
+            {
+                // Id of the apartment which made the last shift
+                int lastApartmentId = (from cf in context.CompletedShifts
+                                       orderby cf.ShiftId descending
+                                       select cf.ApartmentId).FirstOrDefault();
+
+                int currentApartmentId;
+
+                // If the apartment ID is 5, next in shift will be an apartment 1
+                if (lastApartmentId < 5)
+                {
+                    currentApartmentId = lastApartmentId + 1;
+                }
+                else
+                {
+                    currentApartmentId = 1;
+                }
+
+                // Get the apartment number based on currentApartmentId
+                string currentApartment = (from a in context.Apartments
+                                           where a.ApartmentId == currentApartmentId
+                                           select a.ApartmentName).FirstOrDefault();
+
+                return currentApartment;
+            }
+            catch (Exception ex)
+            {
+                return "Tuntematon";
             }
             finally
             {
