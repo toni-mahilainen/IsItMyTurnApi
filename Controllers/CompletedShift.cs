@@ -50,7 +50,7 @@ namespace IsItMyTurnApi.Controllers
         // Add a new completed shift
         [HttpPost]
         [Route("")]
-        public ActionResult AddNewShift([FromBody] NewShift newShiftdata)
+        public async Task<ActionResult> AddNewShift([FromBody] NewShift newShiftdata)
         {
             IsItMyTurnContext context = new IsItMyTurnContext();
 
@@ -70,7 +70,8 @@ namespace IsItMyTurnApi.Controllers
                     // If the addition to the database succeeded
                     if (context.SaveChanges() > 0)
                     {
-                        bool notificationSuccess = HandleNotification(newShiftdata.FcmToken);
+                        bool notificationSuccess = await HandleNotification();
+                        //await HandleNotification();
 
                         // If the notification was sent successfully
                         if (notificationSuccess)
@@ -86,8 +87,6 @@ namespace IsItMyTurnApi.Controllers
                     {
                         return BadRequest("Problems with adding content to database!");
                     }
-
-                   
                 }
                 else
                 {
@@ -96,7 +95,7 @@ namespace IsItMyTurnApi.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest("Problem detected while adding a new shift. Error message: " + ex.InnerException);
+                return BadRequest("Problem detected while adding a new shift. Error message: " + ex.Message);
             }
             finally
             {
@@ -131,7 +130,7 @@ namespace IsItMyTurnApi.Controllers
                     {
                         return NotFound("Shift with ID: " + id + " not found");
                     }
-                    
+
                 }
                 catch (Exception ex)
                 {
@@ -180,27 +179,42 @@ namespace IsItMyTurnApi.Controllers
         }
 
         // Build notification
-        public bool HandleNotification(string FcmToken)
+        public async Task<bool> HandleNotification()
         {
+            IsItMyTurnContext context = new IsItMyTurnContext();
+
             string nextApartmentInShift = GetApartmentForNextShift();
-            
+
             FCMNotification notification = new FCMNotification();
             notification.title = "Leikkuuvuoro vaihtui!";
             notification.body = "Seuraavana vuorossa asunto(t) " + nextApartmentInShift + ".";
-            
+
             FCMData data = new FCMData();
             data.key1 = "";
             data.key2 = "";
             data.key3 = "";
             data.key4 = "";
-            
-            FCMBody body = new FCMBody();
-            body.registration_ids = new string[] { FcmToken };
-            body.notification = notification;
-            body.data = data;
 
-            var isSuccessCall = SendNotification(body).Result;
-            if (isSuccessCall)
+            string[] fcmTokens = (from ft in context.FcmTokens
+                                  select ft.Token).ToArray();
+
+            List<bool> successList = new List<bool>();
+
+            foreach (var token in fcmTokens)
+            {
+                FCMBody body = new FCMBody();
+                body.registration_ids = new string[] { token };
+                body.notification = notification;
+                body.data = data;
+
+                bool result = await SendNotification(body);
+                successList.Add(result);
+            }
+
+            // If all the notification send responses are OK, return true
+            bool allTrue = successList.All(s => Equals(true, s));
+
+            if (allTrue)
             {
                 return true;
             }
@@ -213,31 +227,19 @@ namespace IsItMyTurnApi.Controllers
         // Notification request to Firebase
         public async Task<bool> SendNotification(FCMBody fcmBody)
         {
-            try
+            var httpContent = JsonConvert.SerializeObject(fcmBody);
+            HttpClient client = new HttpClient();
+            var authorization = string.Format("key={0}", "AAAA_V-6Iio:APA91bF5-SIIcue9XdaALtO1is8Vlkk2PUVn9Z21LaeYurCI0y0s-1ZNtDA6ZxsMPpzTqM1Lh0uEf1SH-PBMIhOODp6sOY7v7PUOLBqyt-H3PcvbC4-mPmcaUH2Xk52ermtqvNua7vIH");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorization);
+            StringContent stringContent = new StringContent(httpContent);
+            stringContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+            HttpResponseMessage response = await client.PostAsync("https://fcm.googleapis.com/fcm/send", stringContent);
+
+            if (response.IsSuccessStatusCode)
             {
-                var httpContent = JsonConvert.SerializeObject(fcmBody);
-                var client = new HttpClient();
-                var authorization = string.Format("key={0}", "AAAA_V-6Iio:APA91bF5-SIIcue9XdaALtO1is8Vlkk2PUVn9Z21LaeYurCI0y0s-1ZNtDA6ZxsMPpzTqM1Lh0uEf1SH-PBMIhOODp6sOY7v7PUOLBqyt-H3PcvbC4-mPmcaUH2Xk52ermtqvNua7vIH");
-                client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorization);
-                var stringContent = new StringContent(httpContent);
-                stringContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-                string uri = "https://fcm.googleapis.com/fcm/send";
-                var response = await client.PostAsync(uri, stringContent).ConfigureAwait(false);
-                var result = response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                return true;
             }
-            catch (TaskCanceledException ex)
-            {
-                return false;
-            }
-            catch (Exception ex)
+            else
             {
                 return false;
             }
