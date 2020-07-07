@@ -50,7 +50,7 @@ namespace IsItMyTurnApi.Controllers
         // Add a new completed shift
         [HttpPost]
         [Route("")]
-        public async Task<ActionResult> AddNewShift([FromBody] NewShift newShiftdata)
+        public async Task<ActionResult> AddNewShift([FromBody] CompletedShifts newShiftdata)
         {
             IsItMyTurnContext context = new IsItMyTurnContext();
 
@@ -66,31 +66,26 @@ namespace IsItMyTurnApi.Controllers
                     };
 
                     context.CompletedShifts.Add(shift);
+                    int successCount = context.SaveChanges();
 
-                    // If the addition to the database succeeded
-                    if (context.SaveChanges() > 0)
+                    bool notificationSuccess = await HandleNotification();
+                    
+                    if (notificationSuccess == true && successCount > 0)
                     {
-                        bool notificationSuccess = await HandleNotification();
-                        //await HandleNotification();
-
-                        // If the notification was sent successfully
-                        if (notificationSuccess)
-                        {
-                            return Ok("New shift has added successfully!");
-                        }
-                        else
-                        {
-                            return BadRequest("Problems with notification!");
-                        }
+                        return Ok("New shift has added successfully!");
+                    }
+                    else if (notificationSuccess == false && successCount > 0)
+                    {
+                        return StatusCode(201);
                     }
                     else
                     {
-                        return BadRequest("Problems with adding content to database!");
+                        return BadRequest("Problems with notification and adding the row to database!");
                     }
                 }
                 else
                 {
-                    return NotFound("New shift data missing!");
+                    return NotFound("New shift data is missing!");
                 }
             }
             catch (Exception ex)
@@ -187,7 +182,7 @@ namespace IsItMyTurnApi.Controllers
 
             FCMNotification notification = new FCMNotification();
             notification.title = "Leikkuuvuoro vaihtui!";
-            notification.body = "Seuraavana vuorossa asunto(t) " + nextApartmentInShift + ".";
+            notification.body = "Seuraavana vuorossa: " + nextApartmentInShift;
 
             FCMData data = new FCMData();
             data.key1 = "";
@@ -227,8 +222,8 @@ namespace IsItMyTurnApi.Controllers
         // Notification request to Firebase
         public async Task<bool> SendNotification(FCMBody fcmBody)
         {
-            var httpContent = JsonConvert.SerializeObject(fcmBody);
             HttpClient client = new HttpClient();
+            var httpContent = JsonConvert.SerializeObject(fcmBody);
             var authorization = string.Format("key={0}", "AAAA_V-6Iio:APA91bF5-SIIcue9XdaALtO1is8Vlkk2PUVn9Z21LaeYurCI0y0s-1ZNtDA6ZxsMPpzTqM1Lh0uEf1SH-PBMIhOODp6sOY7v7PUOLBqyt-H3PcvbC4-mPmcaUH2Xk52ermtqvNua7vIH");
             client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorization);
             StringContent stringContent = new StringContent(httpContent);
