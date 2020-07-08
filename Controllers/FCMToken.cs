@@ -16,7 +16,7 @@ namespace IsItMyTurnApi.Controllers
         // Add a new token for the device
         [HttpPost]
         [Route("")]
-        public async Task<ActionResult> AddNewToken([FromBody] OtherModels.FcmTokens tokens)
+        public async Task<ActionResult> AddNewToken([FromBody] OtherModels.Identifier tokens)
         {
             IsItMyTurnContext context = new IsItMyTurnContext();
 

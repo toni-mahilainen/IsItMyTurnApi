@@ -17,6 +17,7 @@ namespace IsItMyTurnApi.Models
 
         public virtual DbSet<Apartments> Apartments { get; set; }
         public virtual DbSet<CompletedShifts> CompletedShifts { get; set; }
+        public virtual DbSet<Devices> Devices { get; set; }
         public virtual DbSet<FcmTokens> FcmTokens { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -51,15 +52,34 @@ namespace IsItMyTurnApi.Models
                     .HasConstraintName("FK_CompletedShifts_Apartments");
             });
 
+            modelBuilder.Entity<Devices>(entity =>
+            {
+                entity.HasKey(e => e.DeviceId);
+
+                entity.Property(e => e.DeviceId).HasColumnName("DeviceID");
+
+                entity.Property(e => e.UniqueIdentifier)
+                    .IsRequired()
+                    .HasMaxLength(50);
+            });
+
             modelBuilder.Entity<FcmTokens>(entity =>
             {
                 entity.HasKey(e => e.TokenId);
 
                 entity.Property(e => e.TokenId).HasColumnName("TokenID");
 
+                entity.Property(e => e.DeviceId).HasColumnName("DeviceID");
+
                 entity.Property(e => e.Token)
                     .IsRequired()
                     .HasMaxLength(200);
+
+                entity.HasOne(d => d.Device)
+                    .WithMany(p => p.FcmTokens)
+                    .HasForeignKey(d => d.DeviceId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_FcmTokens_Devices");
             });
 
             OnModelCreatingPartial(modelBuilder);
