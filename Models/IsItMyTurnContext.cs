@@ -60,7 +60,7 @@ namespace IsItMyTurnApi.Models
 
                 entity.Property(e => e.UniqueIdentifier)
                     .IsRequired()
-                    .HasMaxLength(50);
+                    .HasMaxLength(150);
             });
 
             modelBuilder.Entity<FcmTokens>(entity =>

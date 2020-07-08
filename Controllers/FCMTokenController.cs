@@ -67,7 +67,7 @@ namespace IsItMyTurnApi.Controllers
                                   select ft).FirstOrDefault();
 
                 // If a token is not exist, it will be added to database. Otherwise the old one will be updated
-                if (tokenCheck.Token == null)
+                if (tokenCheck == null)
                 {
                     FcmTokens token = new FcmTokens()
                     {
