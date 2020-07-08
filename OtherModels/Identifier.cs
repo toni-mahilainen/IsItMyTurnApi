@@ -7,8 +7,7 @@ namespace IsItMyTurnApi.OtherModels
 {
     public class Identifier
     {
-        public string DeviceId { get; set; }
-        public string OldToken { get; set; }
-        public string NewToken { get; set; }
+        public string UniqueIdentifier { get; set; }
+        public string Token { get; set; }
     }
 }

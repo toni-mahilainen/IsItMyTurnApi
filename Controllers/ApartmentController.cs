@@ -10,7 +10,7 @@ namespace IsItMyTurnApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class Apartment : ControllerBase
+    public class ApartmentController : ControllerBase
     {
         // GET: api/apartment/
         // Get all apartments

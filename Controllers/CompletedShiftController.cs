@@ -13,7 +13,7 @@ namespace IsItMyTurnApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CompletedShift : ControllerBase
+    public class CompletedShiftController : ControllerBase
     {
         // GET: api/completedshift/
         // Get all completed shifts
