@@ -47,7 +47,7 @@ namespace IsItMyTurnApi.Controllers
         }
 
         // POST: api/completedshift/
-        // Add a new completed shift
+        // Add a new completed shift and send the push notifications to all registered devices
         [HttpPost]
         [Route("")]
         public async Task<ActionResult> AddNewShift([FromBody] CompletedShifts newShiftdata)
@@ -68,18 +68,22 @@ namespace IsItMyTurnApi.Controllers
                     context.CompletedShifts.Add(shift);
                     int successCount = context.SaveChanges();
 
+                    // Notifications
                     bool notificationSuccess = await HandleNotification();
                     
                     if (notificationSuccess == true && successCount > 0)
                     {
+                        // Everything is OK
                         return Ok("New shift has added successfully!");
                     }
                     else if (notificationSuccess == false && successCount > 0)
                     {
+                        // Problems with notifications. Addition to database is OK
                         return StatusCode(201);
                     }
                     else
                     {
+                        // Nothing is OK
                         return BadRequest("Problems with notification and adding the row to database!");
                     }
                 }
@@ -102,7 +106,7 @@ namespace IsItMyTurnApi.Controllers
         // Update data for completed shift
         [HttpPut]
         [Route("{id}")]
-        public ActionResult UpdateShiftData(int id, [FromBody] CompletedShifts newShiftData)
+        public async Task<ActionResult> UpdateShiftData(int id, [FromBody] CompletedShifts newShiftData)
         {
             IsItMyTurnContext context = new IsItMyTurnContext();
 
@@ -116,16 +120,44 @@ namespace IsItMyTurnApi.Controllers
                 {
                     if (shift != null)
                     {
+                        bool hasApartmentChanged = shift.ApartmentId != newShiftData.ApartmentId;
+
                         shift.ApartmentId = newShiftData.ApartmentId;
                         shift.Date = newShiftData.Date;
 
-                        return Ok("Shift data has updated successfully!");
+                        int successCount = context.SaveChanges();
+
+                        // When the apartment ID has changed, the push notifications will be sent
+                        if (hasApartmentChanged)
+                        {
+                            // Notifications
+                            bool notificationSuccess = await HandleNotification();
+
+                            if (notificationSuccess == true && successCount > 0)
+                            {
+                                // Everything is OK
+                                return Ok("A shift has updated successfully!");
+                            }
+                            else if (notificationSuccess == false && successCount > 0)
+                            {
+                                // Problems with notifications. Database update is OK
+                                return StatusCode(201);
+                            }
+                            else
+                            {
+                                // Nothing is OK
+                                return BadRequest("Problems with notification and updating the row to database!");
+                            }
+                        }
+                        else
+                        {
+                            return Ok("A shift has updated successfully!");
+                        }
                     }
                     else
                     {
                         return NotFound("Shift with ID: " + id + " not found");
                     }
-
                 }
                 catch (Exception ex)
                 {
@@ -146,7 +178,7 @@ namespace IsItMyTurnApi.Controllers
         // Delete a shift
         [HttpDelete]
         [Route("{id}")]
-        public ActionResult DeleteShift(int id)
+        public async Task<ActionResult> DeleteShift(int id)
         {
             IsItMyTurnContext context = new IsItMyTurnContext();
 
@@ -154,14 +186,35 @@ namespace IsItMyTurnApi.Controllers
             {
                 if (id != 0)
                 {
-                    // Searching right user with ID
+                    // Searching right shift with ID
                     var shift = context.CompletedShifts.Find(id);
 
                     context.Remove(shift);
-                    context.SaveChanges();
-                }
+                    int successCount = context.SaveChanges();
 
-                return Ok("Shift has deleted succesfully!");
+                    // Notifications
+                    bool notificationSuccess = await HandleNotification();
+
+                    if (notificationSuccess == true && successCount > 0)
+                    {
+                        // Everything is OK
+                        return Ok("New shift has deleted successfully!");
+                    }
+                    else if (notificationSuccess == false && successCount > 0)
+                    {
+                        // Problems with notifications. Deletion from database is OK
+                        return StatusCode(201);
+                    }
+                    else
+                    {
+                        // Nothing is OK
+                        return BadRequest("Problems with notification and deleting the row from database!");
+                    }
+                }
+                else
+                {
+                    return BadRequest("Shift ID is null!");
+                }
             }
             catch (Exception ex)
             {

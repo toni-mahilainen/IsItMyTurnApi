@@ -53,8 +53,8 @@ namespace IsItMyTurnApi.Controllers
             {
                 // Id of the apartment which made the last shift
                 int lastApartmentId = (from cf in context.CompletedShifts
-                                     orderby cf.ShiftId descending
-                                     select cf.ApartmentId).FirstOrDefault();
+                                       orderby cf.ShiftId descending
+                                       select cf.ApartmentId).FirstOrDefault();
 
                 int currentApartmentId;
 
