@@ -25,7 +25,7 @@ namespace IsItMyTurnApi.Controllers
                                where d.UniqueIdentifier == identifier.UniqueIdentifier
                                select d).FirstOrDefault();
 
-            // Check if device exists
+            // Check if device exists in database
             if (deviceCheck == null)
             {
                 Devices device = new Devices()
@@ -61,7 +61,7 @@ namespace IsItMyTurnApi.Controllers
             }
             else
             {
-                // If device exists, check if device has a token
+                // If device exists, check if the device has a token
                 var tokenCheck = (from ft in context.FcmTokens
                                   where ft.DeviceId == deviceCheck.DeviceId
                                   select ft).FirstOrDefault();

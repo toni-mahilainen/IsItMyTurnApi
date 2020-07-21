@@ -233,27 +233,23 @@ namespace IsItMyTurnApi.Controllers
 
             string nextApartmentInShift = GetApartmentForNextShift();
 
+            // Title and body for notification
             FCMNotification notification = new FCMNotification();
             notification.title = "Leikkuuvuoro vaihtui!";
             notification.body = "Seuraavana vuorossa: " + nextApartmentInShift;
 
-            FCMData data = new FCMData();
-            data.key1 = "";
-            data.key2 = "";
-            data.key3 = "";
-            data.key4 = "";
-
+            // Tokens to array from database which will get the notification
             string[] fcmTokens = (from ft in context.FcmTokens
                                   select ft.Token).ToArray();
 
             List<bool> successList = new List<bool>();
 
+            // The notification is sent to device and the result will be added to list of successes
             foreach (var token in fcmTokens)
             {
                 FCMBody body = new FCMBody();
                 body.registration_ids = new string[] { token };
                 body.notification = notification;
-                body.data = data;
 
                 bool result = await SendNotification(body);
                 successList.Add(result);
@@ -277,8 +273,12 @@ namespace IsItMyTurnApi.Controllers
         {
             HttpClient client = new HttpClient();
             var httpContent = JsonConvert.SerializeObject(fcmBody);
+
+            // Server key for authorization
             var authorization = string.Format("key={0}", "AAAA_V-6Iio:APA91bF5-SIIcue9XdaALtO1is8Vlkk2PUVn9Z21LaeYurCI0y0s-1ZNtDA6ZxsMPpzTqM1Lh0uEf1SH-PBMIhOODp6sOY7v7PUOLBqyt-H3PcvbC4-mPmcaUH2Xk52ermtqvNua7vIH");
             client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authorization);
+
+            // Notification content to Firebase API in JSON format
             StringContent stringContent = new StringContent(httpContent);
             stringContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
             HttpResponseMessage response = await client.PostAsync("https://fcm.googleapis.com/fcm/send", stringContent);
@@ -326,7 +326,7 @@ namespace IsItMyTurnApi.Controllers
             }
             catch (Exception ex)
             {
-                return "Tuntematon";
+                return $"Error: {ex.Message}";
             }
             finally
             {

@@ -22,6 +22,7 @@ namespace IsItMyTurnApi.Controllers
 
             try
             {
+                // All apartments to list
                 var apartments = (from a in context.Apartments
                                   select new
                                   {
