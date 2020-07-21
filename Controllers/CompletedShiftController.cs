@@ -237,6 +237,7 @@ namespace IsItMyTurnApi.Controllers
             FCMNotification notification = new FCMNotification();
             notification.title = "Leikkuuvuoro vaihtui!";
             notification.body = "Seuraavana vuorossa: " + nextApartmentInShift;
+            notification.sound = "default";
 
             // Tokens to array from database which will get the notification
             string[] fcmTokens = (from ft in context.FcmTokens

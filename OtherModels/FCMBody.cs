@@ -15,5 +15,6 @@ namespace IsItMyTurnApi.OtherModels
     {
         public string body { get; set; }
         public string title { get; set; }
+        public string sound { get; set; }
     }
 }
