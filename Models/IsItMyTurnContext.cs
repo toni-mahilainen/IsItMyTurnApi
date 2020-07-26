@@ -36,7 +36,7 @@ namespace IsItMyTurnApi.Models
 
                 entity.Property(e => e.ApartmentName)
                     .IsRequired()
-                    .HasMaxLength(5);
+                    .HasMaxLength(7);
             });
 
             modelBuilder.Entity<CompletedShifts>(entity =>
