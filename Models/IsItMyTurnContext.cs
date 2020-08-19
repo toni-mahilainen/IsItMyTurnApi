@@ -17,12 +17,14 @@ namespace IsItMyTurnApi.Models
 
         public virtual DbSet<Apartments> Apartments { get; set; }
         public virtual DbSet<CompletedShifts> CompletedShifts { get; set; }
+        public virtual DbSet<Devices> Devices { get; set; }
+        public virtual DbSet<FcmTokens> FcmTokens { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=ASUS-LAPTOP\\SQLDEVTONIMA;Initial Catalog=IsItMyTurn;Persist Security Info=False;User ID=sa;Password=866462Tm;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
+                optionsBuilder.UseSqlServer("Server=tcp:careeria-sql.database.windows.net,1433;Initial Catalog=IsItMyTurn;Persist Security Info=False;User ID=SQLAdmin;Password=866462Tm;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;");
             }
         }
 
@@ -32,9 +34,9 @@ namespace IsItMyTurnApi.Models
             {
                 entity.HasKey(e => e.ApartmentId);
 
-                entity.Property(e => e.Apartment)
+                entity.Property(e => e.ApartmentName)
                     .IsRequired()
-                    .HasMaxLength(5);
+                    .HasMaxLength(7);
             });
 
             modelBuilder.Entity<CompletedShifts>(entity =>
@@ -48,6 +50,36 @@ namespace IsItMyTurnApi.Models
                     .HasForeignKey(d => d.ApartmentId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_CompletedShifts_Apartments");
+            });
+
+            modelBuilder.Entity<Devices>(entity =>
+            {
+                entity.HasKey(e => e.DeviceId);
+
+                entity.Property(e => e.DeviceId).HasColumnName("DeviceID");
+
+                entity.Property(e => e.UniqueIdentifier)
+                    .IsRequired()
+                    .HasMaxLength(150);
+            });
+
+            modelBuilder.Entity<FcmTokens>(entity =>
+            {
+                entity.HasKey(e => e.TokenId);
+
+                entity.Property(e => e.TokenId).HasColumnName("TokenID");
+
+                entity.Property(e => e.DeviceId).HasColumnName("DeviceID");
+
+                entity.Property(e => e.Token)
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.HasOne(d => d.Device)
+                    .WithMany(p => p.FcmTokens)
+                    .HasForeignKey(d => d.DeviceId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_FcmTokens_Devices");
             });
 
             OnModelCreatingPartial(modelBuilder);
