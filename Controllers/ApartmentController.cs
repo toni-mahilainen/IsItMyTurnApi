@@ -60,7 +60,7 @@ namespace IsItMyTurnApi.Controllers
                 int currentApartmentId;
 
                 // If the apartment ID is 5, next in shift will be an apartment 1
-                if (lastApartmentId < 5)
+                if (lastApartmentId < 6)
                 {
                     currentApartmentId = lastApartmentId + 1;
                 }
